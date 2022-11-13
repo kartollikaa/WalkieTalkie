@@ -6,7 +6,7 @@ import android.media.AudioRecord
 import android.media.MediaRecorder.AudioSource
 import android.os.Process
 import android.util.Log
-import com.kartollika.walkietalkie.SocketHolder.socket
+import com.kartollika.walkietalkie.bluetooth.SocketHolder.socket
 import java.io.IOException
 
 class MicRecorder : Runnable {
@@ -27,7 +27,9 @@ class MicRecorder : Runnable {
     try {
       val outputStream = socket!!.outputStream
       val audioBuffer = ByteArray(bufferSize)
-      @SuppressLint("MissingPermission") val record = AudioRecord(
+      @SuppressLint("MissingPermission")
+
+      val record = AudioRecord(
         AudioSource.VOICE_RECOGNITION,
         SAMPLE_RATE,
         AudioFormat.CHANNEL_IN_MONO,
@@ -38,6 +40,7 @@ class MicRecorder : Runnable {
         Log.e("AUDIO", "Audio Record can't initialize!")
         return
       }
+
       record.startRecording()
       Log.e("AUDIO", "STARTED RECORDING")
       while (keepRecording) {

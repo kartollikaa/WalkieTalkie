@@ -24,7 +24,12 @@
     <service
         android:enabled="true"
         android:exported="true"
-        android:name=".AudioPlayService"/>
+        android:name=".AudioPlayService" />
+
+    <service
+        android:enabled="true"
+        android:exported="true"
+        android:name=".bluetooth.BluetoothService" />
 
     <activity
         android:exported="true"

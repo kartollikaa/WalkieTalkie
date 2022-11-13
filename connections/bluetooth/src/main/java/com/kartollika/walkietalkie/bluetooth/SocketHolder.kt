@@ -1,4 +1,4 @@
-package com.kartollika.walkietalkie
+package com.kartollika.walkietalkie.bluetooth
 
 import android.bluetooth.BluetoothSocket
 

@@ -65,10 +65,9 @@ dependencies {
   implementation "com.google.dagger:hilt-android:2.44"
   kapt "com.google.dagger:hilt-compiler:2.44"
   implementation "androidx.compose.material:material-icons-extended:$compose_ui_version"
-  implementation "com.google.dagger:hilt-android:2.44"
   implementation "androidx.hilt:hilt-navigation-compose:1.0.0"
-//  implementation "androidx.activity:activity-compose:1.6.1"
   implementation "com.google.accompanist:accompanist-permissions:0.27.0"
+  implementation project(":connections:bluetooth")
 }
 
 kapt {

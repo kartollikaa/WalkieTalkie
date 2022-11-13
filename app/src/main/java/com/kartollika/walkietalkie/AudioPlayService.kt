@@ -9,6 +9,7 @@ import android.media.AudioFormat.ENCODING_PCM_16BIT
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.IBinder
+import com.kartollika.walkietalkie.bluetooth.SocketHolder
 import java.io.IOException
 import java.io.InputStream
 
@@ -30,7 +31,7 @@ class AudioPlayService : Service() {
     val audioStreamingRunnable = Runnable {
       var bufferSize = AudioTrack.getMinBufferSize(16000, CHANNEL_OUT_MONO, ENCODING_PCM_16BIT)
       if (bufferSize == AudioTrack.ERROR || bufferSize == AudioTrack.ERROR_BAD_VALUE) {
-        bufferSize = 16000 * 2;
+        bufferSize = 16000 * 2
       }
 
       val audioTrack = AudioTrack.Builder()

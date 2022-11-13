@@ -1,7 +1,6 @@
 package com.kartollika.walkietalkie
 
 import android.bluetooth.BluetoothDevice
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,13 +8,11 @@ import com.kartollika.walkietalkie.Connected.WalkieMode.IDLE
 
 sealed class WalkieTalkieState
 
-data class Idle(
-  val bluetoothEnabled: () -> Boolean
-) : WalkieTalkieState() {
+object Idle: WalkieTalkieState() {
+  var bluetoothEnabled by mutableStateOf(false)
 }
 
-@Stable
-object Searching : WalkieTalkieState() {
+class Searching : WalkieTalkieState() {
   var devices by mutableStateOf(setOf<BluetoothDevice>())
 }
 

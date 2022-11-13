@@ -1,9 +1,8 @@
-package com.kartollika.walkietalkie.di
+package com.kartollika.walkietalkie.bluetooth.di
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -13,7 +12,7 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object BluetoothModule {
+class BluetoothModule {
 
   @Provides
   @Singleton
