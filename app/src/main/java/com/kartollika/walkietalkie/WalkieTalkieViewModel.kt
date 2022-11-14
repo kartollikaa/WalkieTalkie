@@ -4,9 +4,6 @@ import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kartollika.walkietalkie.Connected.WalkieMode
-import com.kartollika.walkietalkie.Connected.WalkieMode.IDLE
-import com.kartollika.walkietalkie.Connected.WalkieMode.LISTENING
-import com.kartollika.walkietalkie.Connected.WalkieMode.SPEAKING
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceConnected
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceDisconnected
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceDiscovered
@@ -97,23 +94,6 @@ class WalkieTalkieViewModel @Inject constructor(
 
   private fun closeConnection() {
     _walkieTalkieState.tryEmit(Idle)
-  }
-
-  private fun startSpeaking() {
-    updateWalkieMode(SPEAKING)
-    micRecorder = MicRecorder()
-    micRecorder?.keepRecording = true
-    Thread(micRecorder).start()
-  }
-
-  private fun idleWalkie() {
-    updateWalkieMode(IDLE)
-    micRecorder?.keepRecording = false
-  }
-
-  private fun startListening() {
-    updateWalkieMode(LISTENING)
-    micRecorder?.keepRecording = false
   }
 
   private fun updateWalkieMode(walkieMode: WalkieMode) {

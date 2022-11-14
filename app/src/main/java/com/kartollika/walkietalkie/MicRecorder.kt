@@ -6,10 +6,12 @@ import android.media.AudioRecord
 import android.media.MediaRecorder.AudioSource
 import android.os.Process
 import android.util.Log
+import com.kartollika.walkietalkie.bluetooth.BluetoothAction
+import com.kartollika.walkietalkie.bluetooth.BluetoothActionsDataSource
 import com.kartollika.walkietalkie.bluetooth.SocketHolder.socket
 import java.io.IOException
 
-class MicRecorder : Runnable {
+class MicRecorder(private val dataSource: BluetoothActionsDataSource) : Runnable {
 
   var keepRecording = false
 
@@ -27,10 +29,11 @@ class MicRecorder : Runnable {
     try {
       val outputStream = socket!!.outputStream
       val audioBuffer = ByteArray(bufferSize)
+
       @SuppressLint("MissingPermission")
 
       val record = AudioRecord(
-        AudioSource.VOICE_RECOGNITION,
+        AudioSource.MIC,
         SAMPLE_RATE,
         AudioFormat.CHANNEL_IN_MONO,
         AudioFormat.ENCODING_PCM_16BIT,
@@ -50,7 +53,9 @@ class MicRecorder : Runnable {
             outputStream.write(audioBuffer)
             outputStream.flush()
           } catch (e: IOException) {
+            dataSource.sendAction(BluetoothAction.Error(e, "Output stream closed"))
             e.printStackTrace()
+            keepRecording = false
           }
         }
         val thread = Thread(writeToOutputStream)
@@ -60,6 +65,7 @@ class MicRecorder : Runnable {
       record.release()
       Log.e("AUDIO", "Streaming stopped")
     } catch (e: IOException) {
+      dataSource.sendAction(BluetoothAction.Error(e, "Output stream closed"))
       e.printStackTrace()
     }
   }

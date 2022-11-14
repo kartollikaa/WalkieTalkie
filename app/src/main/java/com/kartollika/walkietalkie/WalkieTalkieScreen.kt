@@ -51,19 +51,6 @@ fun WalkieTalkieScreen(
     }
   }
 
-//  val onConnect = {
-//    bluetoothEnableLauncher.launch(intent)
-//  }
-//
-//  val onListen = {
-//    if (listenPermissionState.allPermissionsGranted) {
-//      enableBluetooth()
-//      viewModel.listenForConnections()
-//    } else {
-//      listenPermissionState.launchMultiplePermissionRequest()
-//    }
-//  }
-
   Box(
     modifier = Modifier
       .fillMaxSize()

@@ -9,11 +9,19 @@ import android.media.AudioFormat.ENCODING_PCM_16BIT
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.IBinder
+import com.kartollika.walkietalkie.bluetooth.BluetoothAction
+import com.kartollika.walkietalkie.bluetooth.BluetoothActionsDataSource
 import com.kartollika.walkietalkie.bluetooth.SocketHolder
+import dagger.hilt.android.AndroidEntryPoint
 import java.io.IOException
 import java.io.InputStream
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class AudioPlayService : Service() {
+
+  @Inject
+  lateinit var bluetoothActionsDataSource: BluetoothActionsDataSource
 
   private var audioTrack: AudioTrack? = null
   private var keepPlaying = true
@@ -71,7 +79,9 @@ class AudioPlayService : Service() {
         audioTrack.release()
       } catch (e: IOException) {
         e.printStackTrace()
+        bluetoothActionsDataSource.sendAction(BluetoothAction.Error(e, "Input stream closed"))
       } catch (e: java.lang.NullPointerException) {
+        bluetoothActionsDataSource.sendAction(BluetoothAction.Error(e, "Input stream closed"))
         e.printStackTrace()
       }
     }

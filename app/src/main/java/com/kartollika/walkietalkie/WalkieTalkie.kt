@@ -6,9 +6,11 @@ import android.bluetooth.BluetoothDevice.BOND_BONDED
 import android.view.MotionEvent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,15 +38,15 @@ import com.google.accompanist.permissions.MultiplePermissionsState
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalPermissionsApi::class)
 @SuppressLint("MissingPermission") @Composable fun WalkieTalkie(
-  modifier: Modifier = Modifier,
   state: WalkieTalkieState,
-  onConnect: () -> Unit,
-  onListen: () -> Unit,
-  onDisconnect: () -> Unit,
-  connectToDevice: (BluetoothDevice) -> Unit,
-  startSpeaking: () -> Unit,
-  stopSpeaking: () -> Unit,
-  permissionState: MultiplePermissionsState
+  onConnect: () -> Unit = {},
+  onListen: () -> Unit = {},
+  onDisconnect: () -> Unit = {},
+  connectToDevice: (BluetoothDevice) -> Unit = {},
+  startSpeaking: () -> Unit = {},
+  stopSpeaking: () -> Unit = {},
+  permissionState: MultiplePermissionsState,
+  modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier, verticalArrangement = Arrangement.SpaceBetween) {
     BluetoothControllers(
@@ -54,40 +57,86 @@ import com.google.accompanist.permissions.MultiplePermissionsState
       onDisconnect = onDisconnect,
       permissionState = permissionState
     )
+
     when (state) {
       is Idle, is Listening -> {}
       is Connected -> {
-        Surface(
+        Connected(
           modifier = Modifier
-            .size(64.dp)
-            .pointerInteropFilter { event ->
-              when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                  startSpeaking()
-                }
-                MotionEvent.ACTION_UP -> {
-                  stopSpeaking()
-                }
-                else -> false
-              }
-              true
-            }, shape = CircleShape, color = Color.Cyan
-        ) {
-          Icon(imageVector = Icons.Default.Mic, contentDescription = "Push to speak")
-        }
+            .weight(1f)
+            .fillMaxSize(),
+          startSpeaking = startSpeaking,
+          stopSpeaking = stopSpeaking
+        )
       }
 
       is Searching -> {
-        LazyColumn(
+        BluetoothDevices(
           modifier = Modifier
             .weight(1f)
-            .fillMaxWidth()
-        ) {
-          items(state.devices.toList()) { device: BluetoothDevice ->
-            BluetoothDevice(connectToDevice, device)
-          }
-        }
+            .fillMaxWidth(),
+          state = state,
+          connectToDevice = connectToDevice
+        )
       }
+    }
+  }
+}
+
+@Composable
+private fun Connected(
+  startSpeaking: () -> Unit,
+  stopSpeaking: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  Box(modifier = modifier, contentAlignment = Center) {
+    PushToTalk(startSpeaking, stopSpeaking)
+  }
+}
+
+@Composable
+@OptIn(ExperimentalComposeUiApi::class)
+private fun PushToTalk(
+  startSpeaking: () -> Unit,
+  stopSpeaking: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  Surface(
+    modifier = modifier
+      .size(232.dp)
+      .padding(32.dp)
+      .pointerInteropFilter { event ->
+        when (event.action) {
+          MotionEvent.ACTION_DOWN -> {
+            startSpeaking()
+          }
+          MotionEvent.ACTION_UP -> {
+            stopSpeaking()
+          }
+          else -> false
+        }
+        true
+      },
+    shape = CircleShape,
+    color = Color.Cyan
+  ) {
+    Icon(
+      modifier = Modifier.padding(24.dp),
+      imageVector = Icons.Default.Mic,
+      contentDescription = "Push to speak"
+    )
+  }
+}
+
+@Composable
+private fun BluetoothDevices(
+  state: Searching,
+  connectToDevice: (BluetoothDevice) -> Unit,
+  modifier: Modifier = Modifier
+) {
+  LazyColumn(modifier = modifier) {
+    items(state.devices.toList()) { device: BluetoothDevice ->
+      BluetoothDevice(connectToDevice, device)
     }
   }
 }
@@ -126,11 +175,14 @@ import com.google.accompanist.permissions.MultiplePermissionsState
         idleContent = {
           Text(text = "Connect")
         },
-        onClick = { if (permissionState.allPermissionsGranted) {
-          onConnect()
-        } else {
-          permissionState.launchMultiplePermissionRequest()
-        }},
+        onClick = {
+          if (permissionState.allPermissionsGranted) {
+            permissionState.launchMultiplePermissionRequest()
+            onConnect()
+          } else {
+            permissionState.launchMultiplePermissionRequest()
+          }
+        },
       )
 
       ProgressButton(

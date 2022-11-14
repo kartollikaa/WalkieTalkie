@@ -6,12 +6,22 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
+import android.bluetooth.le.AdvertiseCallback
+import android.bluetooth.le.AdvertiseData
+import android.bluetooth.le.AdvertiseSettings
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Binder
 import android.os.IBinder
+import android.os.ParcelUuid
+import android.util.Log
+import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceConnected
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceDiscovered
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStarted
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStopped
@@ -34,7 +44,6 @@ class BluetoothService : Service() {
 
   private val binder = BluetoothBinder()
 
-  // Bluetooth connections
   private var connectThread: ConnectThread? = null
   private var connectedThread: ConnectedThread? = null
   private var acceptThread: AcceptThread? = null
@@ -77,9 +86,7 @@ class BluetoothService : Service() {
       return
     }
 
-    bluetoothAdapter.startDiscovery()
     bluetoothActionsDataSource.sendAction(DiscoveryStarted)
-
     bluetoothAdapter.bondedDevices.forEach { device ->
       bluetoothActionsDataSource.sendAction(DeviceDiscovered(device))
     }
@@ -131,7 +138,6 @@ class BluetoothService : Service() {
       }
     }
 
-    // Closes the connect socket and causes the thread to finish.
     fun cancel() {
       try {
         disconnect()
@@ -140,22 +146,68 @@ class BluetoothService : Service() {
     }
   }
 
+  @SuppressLint("MissingPermission")
   private fun manageMyConnectedSocket(socket: BluetoothSocket) {
     SocketHolder.socket = socket
     connectedDevice = socket.remoteDevice
 
-    connectedThread?.interrupt()
-    connectedThread?.cancel()
+    bluetoothActionsDataSource.sendAction(DeviceConnected(connectedDevice))
 
-//    connectedThread = ConnectedThread(
-//      socket.inputStream,
-//      socket.outputStream,
-//      bluetoothActionsDataSource,
-//      onClose = {
-//        socket.close()
-//      }
-//    )
-    connectedThread?.start()
+    val advertiseSettings = AdvertiseSettings.Builder()
+      .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+      .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+      .setConnectable( false )
+      .build()
+
+    val advertiseData = AdvertiseData.Builder()
+      .setIncludeDeviceName(true)
+      .addServiceUuid(ParcelUuid(UUID_CHANNEL))
+      .build()
+
+    val advertiseCallback = object: AdvertiseCallback() {
+      override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+        super.onStartSuccess(settingsInEffect)
+      }
+
+      override fun onStartFailure(errorCode: Int) {
+        super.onStartFailure(errorCode)
+      }
+    }
+    bluetoothAdapter.bluetoothLeAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback)
+
+    val filter: ScanFilter = ScanFilter.Builder()
+      .setServiceUuid(ParcelUuid(UUID_CHANNEL))
+      .build()
+
+    val callback = object : ScanCallback() {
+
+      var mean = 0.0
+      var count = 0
+
+      override fun onScanResult(callbackType: Int, result: ScanResult) {
+        super.onScanResult(callbackType, result)
+        if (result.device.address == connectedDevice?.address) {
+          val rssi = result.rssi
+          // 10 ^ ((-69 -(<RSSI_VALUE>))/(10 * 2))
+          val powerRight = (RSSI_MEASURED_POWER - rssi) / (10 * 2).toDouble()
+          val distance = Math.pow(10.toDouble(), powerRight)
+          mean += distance
+          count++
+          if (count > 15) {
+            mean /= count
+            Log.d("LE Mean distance", mean.toString())
+            mean = 0.0
+            count = 0
+          }
+        }
+      }
+    }
+
+    val settings: ScanSettings = ScanSettings.Builder()
+      .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+      .build()
+
+    bluetoothAdapter.bluetoothLeScanner.startScan(listOf(filter), settings, callback)
   }
 
   @SuppressLint("MissingPermission")
@@ -175,17 +227,10 @@ class BluetoothService : Service() {
           socket.connect()
         } catch (_: Exception) {
         }
-        // Connect to the remote device through the socket. This call blocks
-        // until it succeeds or throws an exception.
-
-        // The connection attempt succeeded. Perform work associated with
-        // the connection in a separate thread.
         manageMyConnectedSocket(socket)
-        socket.close()
       }
     }
 
-    // Closes the client socket and causes the thread to finish.
     fun cancel() {
       try {
         disconnect()
@@ -210,5 +255,6 @@ class BluetoothService : Service() {
 
   companion object {
     val UUID_CHANNEL = UUID.nameUUIDFromBytes("com.kartollika.walkietalkie".toByteArray())
+    private const val RSSI_MEASURED_POWER = -69
   }
 }

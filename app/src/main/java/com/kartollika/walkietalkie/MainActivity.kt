@@ -4,6 +4,7 @@ import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.BLUETOOTH
 import android.Manifest.permission.BLUETOOTH_ADMIN
+import android.Manifest.permission.BLUETOOTH_ADVERTISE
 import android.Manifest.permission.BLUETOOTH_CONNECT
 import android.Manifest.permission.BLUETOOTH_SCAN
 import android.Manifest.permission.RECORD_AUDIO
@@ -29,9 +30,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kartollika.walkietalkie.bluetooth.BluetoothActionsDataSource
 import com.kartollika.walkietalkie.bluetooth.BluetoothService
 import com.kartollika.walkietalkie.ui.theme.WalkieTalkieTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 val permissionsList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
   listOf(
@@ -41,26 +44,27 @@ val permissionsList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
     BLUETOOTH_CONNECT,
     ACCESS_COARSE_LOCATION,
     ACCESS_FINE_LOCATION,
-    RECORD_AUDIO
+    RECORD_AUDIO,
+    BLUETOOTH_ADVERTISE
   )
 } else {
   listOf(
     BLUETOOTH,
     BLUETOOTH_ADMIN,
     ACCESS_COARSE_LOCATION,
-    RECORD_AUDIO
+    ACCESS_FINE_LOCATION,
+    RECORD_AUDIO,
   )
 }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-  private val micRecorder = MicRecorder()
-  private var settingsIntentLauncher = registerForActivityResult(StartActivityForResult()) {}
-  private val enableBluetoothLauncher =
-    registerForActivityResult(StartActivityForResult()) { result ->
+  @Inject
+  lateinit var dataSource: BluetoothActionsDataSource
 
-    }
+  private val micRecorder by lazy { MicRecorder(dataSource) }
+  private var settingsIntentLauncher = registerForActivityResult(StartActivityForResult()) {}
 
   private lateinit var bluetoothService: BluetoothService
 
