@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -62,6 +64,7 @@ import com.google.accompanist.permissions.MultiplePermissionsState
       is Idle, is Listening -> {}
       is Connected -> {
         Connected(
+          state = state,
           modifier = Modifier
             .weight(1f)
             .fillMaxSize(),
@@ -85,12 +88,22 @@ import com.google.accompanist.permissions.MultiplePermissionsState
 
 @Composable
 private fun Connected(
+  state: Connected,
   startSpeaking: () -> Unit,
   stopSpeaking: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Box(modifier = modifier, contentAlignment = Center) {
-    PushToTalk(startSpeaking, stopSpeaking)
+    PushToTalk(
+      modifier = Modifier.align(Center),
+      startSpeaking = startSpeaking,
+      stopSpeaking = stopSpeaking
+    )
+
+    Column(modifier = Modifier.align(BottomCenter), horizontalAlignment = Alignment.CenterHorizontally) {
+      Text(text = "Расстояние между устройствами:")
+      Text(text = "≈ ${state.distance} m")
+    }
   }
 }
 

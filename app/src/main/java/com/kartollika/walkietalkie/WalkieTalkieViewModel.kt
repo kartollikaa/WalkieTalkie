@@ -9,6 +9,7 @@ import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceDisconnected
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceDiscovered
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStarted
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStopped
+import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DistanceChanged
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.Error
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.ListenForConnections
 import com.kartollika.walkietalkie.bluetooth.BluetoothActionsDataSource
@@ -51,12 +52,19 @@ class WalkieTalkieViewModel @Inject constructor(
           is ListenForConnections -> {
             listenForConnections()
           }
+          is DistanceChanged -> {
+            changeDistance(action.distance)
+          }
         }
       }
       .launchIn(viewModelScope)
   }
 
-  private fun onError(action: Error) {
+  private fun changeDistance(distance: Double) {
+    (walkieTalkieState.value as? Connected)?.distance = distance
+  }
+
+  private fun onError(error: Error) {
     _walkieTalkieState.tryEmit(Idle)
   }
 
@@ -97,6 +105,6 @@ class WalkieTalkieViewModel @Inject constructor(
   }
 
   private fun updateWalkieMode(walkieMode: WalkieMode) {
-    (walkieTalkieState.value as Connected).walkieMode = walkieMode
+    (walkieTalkieState.value as Connected).walkieTalkieMode = walkieMode
   }
 }

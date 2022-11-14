@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothSocket
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
+import android.bluetooth.le.AdvertiseSettings.Builder
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
@@ -20,14 +21,12 @@ import android.content.IntentFilter
 import android.os.Binder
 import android.os.IBinder
 import android.os.ParcelUuid
-import android.util.Log
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceConnected
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceDiscovered
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStarted
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStopped
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.Error
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.ListenForConnections
-import com.kartollika.walkietalkie.bluetooth.thread.ConnectedThread
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.IOException
 import java.util.UUID
@@ -45,7 +44,6 @@ class BluetoothService : Service() {
   private val binder = BluetoothBinder()
 
   private var connectThread: ConnectThread? = null
-  private var connectedThread: ConnectedThread? = null
   private var acceptThread: AcceptThread? = null
   private var connectedDevice: BluetoothDevice? = null
 
@@ -62,6 +60,29 @@ class BluetoothService : Service() {
 
     private fun getBluetoothDevice(intent: Intent): BluetoothDevice? {
       return intent.getParcelableExtra(DEVICE_EXTRA) as BluetoothDevice?
+    }
+  }
+
+  private val advertiseCallback = object : AdvertiseCallback() {
+    override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+      super.onStartSuccess(settingsInEffect)
+    }
+
+    override fun onStartFailure(errorCode: Int) {
+      super.onStartFailure(errorCode)
+    }
+  }
+
+  private val leScanCallback = object : ScanCallback() {
+
+    override fun onScanResult(callbackType: Int, result: ScanResult) {
+      super.onScanResult(callbackType, result)
+      if (result.device.address != connectedDevice?.address) {
+        return
+      }
+
+      val rssi = result.rssi
+      bluetoothActionsDataSource.onRssiReceived(result.rssi)
     }
   }
 
@@ -153,10 +174,29 @@ class BluetoothService : Service() {
 
     bluetoothActionsDataSource.sendAction(DeviceConnected(connectedDevice))
 
-    val advertiseSettings = AdvertiseSettings.Builder()
+    startLeScan()
+    startAdvertising()
+  }
+
+  @SuppressLint("MissingPermission")
+  private fun startLeScan() {
+    val filter: ScanFilter = ScanFilter.Builder()
+      .setServiceUuid(ParcelUuid(UUID_CHANNEL))
+      .build()
+
+    val settings: ScanSettings = ScanSettings.Builder()
+      .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+      .build()
+
+    bluetoothAdapter.bluetoothLeScanner.startScan(listOf(filter), settings, leScanCallback)
+  }
+
+  @SuppressLint("MissingPermission")
+  private fun startAdvertising() {
+    val advertiseSettings = Builder()
       .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
       .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-      .setConnectable( false )
+      .setConnectable(false)
       .build()
 
     val advertiseData = AdvertiseData.Builder()
@@ -164,56 +204,24 @@ class BluetoothService : Service() {
       .addServiceUuid(ParcelUuid(UUID_CHANNEL))
       .build()
 
-    val advertiseCallback = object: AdvertiseCallback() {
-      override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
-        super.onStartSuccess(settingsInEffect)
-      }
 
-      override fun onStartFailure(errorCode: Int) {
-        super.onStartFailure(errorCode)
-      }
-    }
-    bluetoothAdapter.bluetoothLeAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback)
+    bluetoothAdapter.bluetoothLeAdvertiser.startAdvertising(
+      advertiseSettings,
+      advertiseData,
+      advertiseCallback
+    )
+  }
 
-    val filter: ScanFilter = ScanFilter.Builder()
-      .setServiceUuid(ParcelUuid(UUID_CHANNEL))
-      .build()
-
-    val callback = object : ScanCallback() {
-
-      var mean = 0.0
-      var count = 0
-
-      override fun onScanResult(callbackType: Int, result: ScanResult) {
-        super.onScanResult(callbackType, result)
-        if (result.device.address == connectedDevice?.address) {
-          val rssi = result.rssi
-          // 10 ^ ((-69 -(<RSSI_VALUE>))/(10 * 2))
-          val powerRight = (RSSI_MEASURED_POWER - rssi) / (10 * 2).toDouble()
-          val distance = Math.pow(10.toDouble(), powerRight)
-          mean += distance
-          count++
-          if (count > 15) {
-            mean /= count
-            Log.d("LE Mean distance", mean.toString())
-            mean = 0.0
-            count = 0
-          }
-        }
-      }
-    }
-
-    val settings: ScanSettings = ScanSettings.Builder()
-      .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-      .build()
-
-    bluetoothAdapter.bluetoothLeScanner.startScan(listOf(filter), settings, callback)
+  @SuppressLint("MissingPermission")
+  private fun stopAdvertisingAndScan() {
+    bluetoothAdapter.bluetoothLeAdvertiser.stopAdvertising(advertiseCallback)
+    bluetoothAdapter.bluetoothLeScanner.stopScan(leScanCallback)
   }
 
   @SuppressLint("MissingPermission")
   private inner class ConnectThread(device: BluetoothDevice) : Thread() {
 
-    private val socket: BluetoothSocket? by lazy(LazyThreadSafetyMode.NONE) {
+    private val socket: BluetoothSocket? by lazy {
       device.createRfcommSocketToServiceRecord(UUID_CHANNEL)
     }
 
@@ -241,6 +249,8 @@ class BluetoothService : Service() {
 
   override fun onDestroy() {
     super.onDestroy()
+
+    stopAdvertisingAndScan()
     try {
       unregisterReceiver(discoveryBroadcastReceiver)
     } catch (e: Exception) {
@@ -255,6 +265,6 @@ class BluetoothService : Service() {
 
   companion object {
     val UUID_CHANNEL = UUID.nameUUIDFromBytes("com.kartollika.walkietalkie".toByteArray())
-    private const val RSSI_MEASURED_POWER = -69
+    const val RSSI_MEASURED_POWER = -69
   }
 }

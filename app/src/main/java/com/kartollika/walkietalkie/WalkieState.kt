@@ -20,7 +20,8 @@ object Listening : WalkieTalkieState()
 
 object Connected: WalkieTalkieState() {
 
-  var walkieMode: WalkieMode = IDLE
+  var distance by mutableStateOf(0.0)
+  var walkieTalkieMode by mutableStateOf(IDLE)
 
   enum class WalkieMode {
     LISTENING,
