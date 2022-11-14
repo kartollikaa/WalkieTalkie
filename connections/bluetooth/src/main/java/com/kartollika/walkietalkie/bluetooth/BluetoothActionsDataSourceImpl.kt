@@ -44,7 +44,7 @@ class BluetoothActionsDataSourceImpl @Inject constructor(): BluetoothActionsData
 
     Log.d("LE:RSSI", rssi.toString())
 
-    if (distanceCount > countForMean) {
+    if (distanceCount >= countForMean) {
       distanceMean /= distanceCount
       Log.d("LE Mean distance", distanceMean.toString())
 
