@@ -1,3 +1,7 @@
 # Project exclude paths
 /.gradle/
 /.idea/
+/feature/walkietalkie/build/
+/audio/build/
+/connections/bluetooth/build
+/feature/walkietalkie/build

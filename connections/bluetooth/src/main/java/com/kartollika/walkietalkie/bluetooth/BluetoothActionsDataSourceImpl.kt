@@ -48,7 +48,7 @@ class BluetoothActionsDataSourceImpl @Inject constructor(): BluetoothActionsData
       distanceMean /= distanceCount
       Log.d("LE Mean distance", distanceMean.toString())
 
-      val decimal = BigDecimal(distanceMean).setScale(2, RoundingMode.HALF_EVEN)
+      val decimal = BigDecimal(distanceMean).setScale(1, RoundingMode.HALF_EVEN)
       _bluetoothActions.tryEmit(DistanceChanged(decimal.toDouble()))
 
       distanceCount = 1

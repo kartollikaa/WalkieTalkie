@@ -15,6 +15,7 @@ sealed class BluetoothAction {
     val message: String? = null
   ): BluetoothAction()
   data class DistanceChanged(val distance: Double): BluetoothAction()
+  object ReceivingVoiceStarted: BluetoothAction()
 }
 
 interface BluetoothActionsDataSource {

@@ -10,6 +10,7 @@ import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.IBinder
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction
+import com.kartollika.walkietalkie.bluetooth.BluetoothAction.ReceivingVoiceStarted
 import com.kartollika.walkietalkie.bluetooth.BluetoothActionsDataSource
 import com.kartollika.walkietalkie.bluetooth.SocketHolder
 import dagger.hilt.android.AndroidEntryPoint
@@ -69,6 +70,7 @@ class AudioPlayService : Service() {
         var readBytes: Int = inputStream.read(buffer, 0, bufferSize)
 
         while (keepPlaying && readBytes != 1) {
+          bluetoothActionsDataSource.sendAction(ReceivingVoiceStarted)
           audioTrack.write(buffer, 0, buffer.size)
           readBytes = inputStream.read(buffer, 0, bufferSize)
         }
