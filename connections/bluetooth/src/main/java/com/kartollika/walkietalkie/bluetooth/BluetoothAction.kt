@@ -19,6 +19,7 @@ sealed class BluetoothAction {
 
 interface BluetoothActionsDataSource {
   val bluetoothActions: SharedFlow<BluetoothAction>
+
   fun sendAction(action: BluetoothAction)
   fun onRssiReceived(rssi: Int)
 }

@@ -25,7 +25,6 @@ import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceConnected
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceDiscovered
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStarted
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStopped
-import com.kartollika.walkietalkie.bluetooth.BluetoothAction.Error
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.ListenForConnections
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.IOException
@@ -77,12 +76,11 @@ class BluetoothService : Service() {
 
     override fun onScanResult(callbackType: Int, result: ScanResult) {
       super.onScanResult(callbackType, result)
-      if (result.device.address != connectedDevice?.address) {
-        return
-      }
-
-      val rssi = result.rssi
       bluetoothActionsDataSource.onRssiReceived(result.rssi)
+    }
+
+    override fun onScanFailed(errorCode: Int) {
+      super.onScanFailed(errorCode)
     }
   }
 
@@ -103,7 +101,7 @@ class BluetoothService : Service() {
     bluetoothAdapter.cancelDiscovery()
     val discoveryStarted = bluetoothAdapter.startDiscovery()
     if (!discoveryStarted) {
-      bluetoothActionsDataSource.sendAction(Error(message = "Discovery not started"))
+      bluetoothActionsDataSource.sendAction(BluetoothAction.Error(message = "Discovery not started"))
       return
     }
 
@@ -148,6 +146,7 @@ class BluetoothService : Service() {
         val socket: BluetoothSocket? = try {
           serverSocket?.accept(timeout)
         } catch (e: IOException) {
+          bluetoothActionsDataSource.sendAction(BluetoothAction.Error(message = "Listen timeout"))
           shouldLoop = false
           null
         }
@@ -156,13 +155,6 @@ class BluetoothService : Service() {
           serverSocket?.close()
           shouldLoop = false
         }
-      }
-    }
-
-    fun cancel() {
-      try {
-        disconnect()
-      } catch (e: IOException) {
       }
     }
   }
