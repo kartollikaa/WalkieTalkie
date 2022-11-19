@@ -37,9 +37,9 @@ class AudioPlayService : Service() {
 
   private fun startStreaming() {
     val audioStreamingRunnable = Runnable {
-      var bufferSize = AudioTrack.getMinBufferSize(16000, CHANNEL_OUT_MONO, ENCODING_PCM_16BIT)
+      var bufferSize = AudioTrack.getMinBufferSize(AUDIO_SAMPLE_RATE, CHANNEL_OUT_MONO, ENCODING)
       if (bufferSize == AudioTrack.ERROR || bufferSize == AudioTrack.ERROR_BAD_VALUE) {
-        bufferSize = 16000 * 2
+        bufferSize = AUDIO_SAMPLE_RATE * 2
       }
 
       val audioTrack = AudioTrack.Builder()
@@ -51,9 +51,9 @@ class AudioPlayService : Service() {
         .setBufferSizeInBytes(bufferSize)
         .setAudioFormat(
           AudioFormat.Builder()
-            .setSampleRate(16000)
+            .setSampleRate(AUDIO_SAMPLE_RATE)
             .setChannelMask(CHANNEL_OUT_MONO)
-            .setEncoding(ENCODING_PCM_16BIT)
+            .setEncoding(ENCODING)
             .build()
         )
         .build()
@@ -94,5 +94,10 @@ class AudioPlayService : Service() {
     if(audioTrack != null) {
       audioTrack?.release()
     }
+  }
+
+  companion object {
+    private const val AUDIO_SAMPLE_RATE = 8000
+    private const val ENCODING = ENCODING_PCM_16BIT
   }
 }

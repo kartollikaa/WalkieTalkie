@@ -20,7 +20,7 @@ class MicRecorder(private val dataSource: BluetoothActionsDataSource) : Runnable
     var bufferSize = AudioRecord.getMinBufferSize(
       SAMPLE_RATE,
       AudioFormat.CHANNEL_IN_MONO,
-      AudioFormat.ENCODING_PCM_16BIT
+      ENCODING
     )
     Log.e("AUDIO", "buffersize = $bufferSize")
     if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
@@ -36,7 +36,7 @@ class MicRecorder(private val dataSource: BluetoothActionsDataSource) : Runnable
         AudioSource.MIC,
         SAMPLE_RATE,
         AudioFormat.CHANNEL_IN_MONO,
-        AudioFormat.ENCODING_PCM_16BIT,
+        ENCODING,
         bufferSize
       )
       if (record.state != AudioRecord.STATE_INITIALIZED) {
@@ -48,29 +48,27 @@ class MicRecorder(private val dataSource: BluetoothActionsDataSource) : Runnable
       Log.e("AUDIO", "STARTED RECORDING")
       while (keepRecording) {
         val numberOfBytes = record.read(audioBuffer, 0, audioBuffer.size)
-        val writeToOutputStream = Runnable {
-          try {
-            outputStream.write(audioBuffer)
-            outputStream.flush()
-          } catch (e: IOException) {
-            dataSource.sendAction(BluetoothAction.Error(e, "Output stream closed"))
-            e.printStackTrace()
-            keepRecording = false
-          }
+
+        if (numberOfBytes >= 0 && numberOfBytes <= audioBuffer.size) {
+          outputStream.write(audioBuffer)
+          outputStream.flush()
+        } else {
+          Log.w("AUDIO", "Unexpected length returned: $numberOfBytes");
         }
-        val thread = Thread(writeToOutputStream)
-        thread.start()
       }
+
       record.stop()
       record.release()
       Log.e("AUDIO", "Streaming stopped")
     } catch (e: IOException) {
       dataSource.sendAction(BluetoothAction.Error(e, "Output stream closed"))
       e.printStackTrace()
+      keepRecording = false
     }
   }
 
   companion object {
-    private const val SAMPLE_RATE = 16000
+    private const val SAMPLE_RATE = 8000
+    private const val ENCODING = AudioFormat.ENCODING_PCM_16BIT
   }
 }
