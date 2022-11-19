@@ -253,13 +253,7 @@ private fun BluetoothDevices(
         idleContent = {
           Text(text = "Connect")
         },
-        onClick = {
-          if (permissionState.allPermissionsGranted) {
-            onConnect()
-          } else {
-            permissionState.launchMultiplePermissionRequest()
-          }
-        },
+        onClick = onConnect
       )
 
       ProgressButton(
@@ -267,13 +261,7 @@ private fun BluetoothDevices(
         idleContent = {
           Text(text = "Listen")
         },
-        onClick = {
-          if (permissionState.allPermissionsGranted) {
-            onListen()
-          } else {
-            permissionState.launchMultiplePermissionRequest()
-          }
-        },
+        onClick = onListen,
       )
     } else {
       Button(onClick = onDisconnect) {

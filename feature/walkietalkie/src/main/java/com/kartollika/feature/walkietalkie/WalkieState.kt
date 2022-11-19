@@ -6,7 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.kartollika.feature.walkietalkie.Connected.WalkieMode.IDLE
 
-sealed class WalkieTalkieState
+sealed class WalkieTalkieState {
+  var permissionKeepTryingAction: (() -> Unit)? = null
+}
 
 object Idle: WalkieTalkieState() {
   var bluetoothEnabled by mutableStateOf(false)

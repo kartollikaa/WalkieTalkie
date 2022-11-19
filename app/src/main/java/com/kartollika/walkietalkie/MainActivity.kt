@@ -12,7 +12,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.app.ActivityCompat
 import androidx.core.view.WindowCompat
 import com.kartollika.feature.walkietalkie.WalkieTalkieRoute
 import com.kartollika.walkietalkie.bluetooth.BluetoothActionsDataSource
@@ -60,9 +59,6 @@ class MainActivity : ComponentActivity() {
             },
             onDisconnect = {
               bluetoothService?.disconnect()
-            },
-            shouldShowRequestPermissionRationale = {
-              ActivityCompat.shouldShowRequestPermissionRationale(this, it)
             }
           )
         }

@@ -1,6 +1,8 @@
 package com.kartollika.feature.walkietalkie
 
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.location.LocationManager
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,7 +34,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class WalkieTalkieViewModel @Inject constructor(
-  private val bluetoothActionsDataSource: BluetoothActionsDataSource
+  private val bluetoothActionsDataSource: BluetoothActionsDataSource,
+  private val bluetoothAdapter: BluetoothAdapter,
+  private val locationManager: LocationManager
 ) : ViewModel() {
 
   private var micRecorder: MicRecorder? = null
@@ -79,6 +83,12 @@ class WalkieTalkieViewModel @Inject constructor(
       }
       .launchIn(viewModelScope)
   }
+
+  fun bluetoothEnabled() = bluetoothAdapter.isEnabled
+
+  fun locationEnabled() =
+    locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
 
   fun startSpeaking() {
     if (getWalkieMode() == LISTENING) return

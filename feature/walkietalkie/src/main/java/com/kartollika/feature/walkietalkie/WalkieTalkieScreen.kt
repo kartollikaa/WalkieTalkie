@@ -1,10 +1,11 @@
 package com.kartollika.feature.walkietalkie
 
-import android.Manifest.permission
-import android.app.Activity
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
+import android.provider.Settings
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
 @Composable
@@ -27,17 +29,17 @@ fun WalkieTalkieRoute(
   onListen: () -> Unit,
   onConnect: () -> Unit,
   onDisconnect: () -> Unit,
-  shouldShowRequestPermissionRationale: (String) -> Boolean,
 ) {
   val state by viewModel.walkieTalkieState.collectAsState()
 
   WalkieTalkieScreen(
     state = state,
-    shouldShowRequestPermissionRationale = shouldShowRequestPermissionRationale,
-    connectToDevice = connectToDevice,
+    bluetoothEnabled = viewModel::bluetoothEnabled,
+    locationEnabled = viewModel::locationEnabled,
     onConnect = onConnect,
-    onDisconnect = onDisconnect,
     onListen = onListen,
+    onDisconnect = onDisconnect,
+    connectToDevice = connectToDevice,
     startSpeaking = viewModel::startSpeaking,
     stopSpeaking = viewModel::stopSpeaking
   )
@@ -47,7 +49,8 @@ fun WalkieTalkieRoute(
 @Composable
 fun WalkieTalkieScreen(
   state: WalkieTalkieState,
-  shouldShowRequestPermissionRationale: (String) -> Boolean,
+  bluetoothEnabled: () -> Boolean = { false },
+  locationEnabled: () -> Boolean = { false },
   onConnect: () -> Unit,
   onListen: () -> Unit,
   onDisconnect: () -> Unit,
@@ -55,23 +58,25 @@ fun WalkieTalkieScreen(
   startSpeaking: () -> Unit,
   stopSpeaking: () -> Unit,
 ) {
-  val intent = Intent("android.bluetooth.adapter.action.REQUEST_ENABLE")
-
-  val permissionsState = rememberMultiplePermissionsState(permissionsList) { result ->
-    if (result.values.all { granted -> granted }) return@rememberMultiplePermissionsState
-
-    if (result.filter { it.key != permission.ACCESS_FINE_LOCATION }
-        .map { shouldShowRequestPermissionRationale(it.key) }
-        .all { shouldShowRationale -> !shouldShowRationale }) {
+  val permissionsState = rememberMultiplePermissionsState(permissionsList) {
+    if (it.values.all { it }) {
+      state.permissionKeepTryingAction?.invoke()
     }
   }
 
-  val bluetoothEnableLauncher = rememberLauncherForActivityResult(
-    contract = StartActivityForResult()
-  ) {
-    permissionsState.launchMultiplePermissionRequest()
-    if (it.resultCode == Activity.RESULT_OK) {
-      onConnect()
+  val bluetoothEnableLauncher = rememberLauncherForActivityResult(contract = StartActivityForResult()) {
+    if (bluetoothEnabled()) {
+      state.permissionKeepTryingAction?.invoke()
+    } else {
+      state.permissionKeepTryingAction = null
+    }
+  }
+
+  val locationEnableLauncher = rememberLauncherForActivityResult(contract = StartActivityForResult()) {
+    if (locationEnabled()) {
+      state.permissionKeepTryingAction?.invoke()
+    } else {
+      state.permissionKeepTryingAction = null
     }
   }
 
@@ -82,17 +87,77 @@ fun WalkieTalkieScreen(
       .navigationBarsPadding()
       .padding(16.dp)
   ) {
-
     WalkieTalkieContent(
       modifier = Modifier.fillMaxSize(),
       state = state,
-      onConnect = onConnect,
-      onListen = onListen,
+      onConnect = {
+        actionIfEnabledBluetoothAndLocation(
+          state,
+          permissionsState,
+          bluetoothEnabled,
+          locationEnabled,
+          bluetoothEnableLauncher,
+          locationEnableLauncher,
+          onConnect
+        )
+      },
+      onListen = {
+        actionIfEnabledBluetoothAndLocation(
+          state,
+          permissionsState,
+          bluetoothEnabled,
+          locationEnabled,
+          bluetoothEnableLauncher,
+          locationEnableLauncher,
+          onListen
+        )
+      },
       onDisconnect = onDisconnect,
       connectToDevice = connectToDevice,
       permissionState = permissionsState,
       startSpeaking = startSpeaking,
       stopSpeaking = stopSpeaking
     )
+  }
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+private fun actionIfEnabledBluetoothAndLocation(
+  state: WalkieTalkieState,
+  permissionsState: MultiplePermissionsState,
+  bluetoothEnabled: () -> Boolean,
+  locationEnabled: () -> Boolean,
+  bluetoothEnableLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>,
+  locationEnableLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>,
+  action: () -> Unit
+) {
+  if (!permissionsState.allPermissionsGranted) {
+    permissionsState.launchMultiplePermissionRequest()
+    state.permissionKeepTryingAction = {
+      actionIfEnabledBluetoothAndLocation(state, permissionsState, bluetoothEnabled, locationEnabled, bluetoothEnableLauncher, locationEnableLauncher, action)
+    }
+    return
+  }
+
+  when {
+    !bluetoothEnabled() -> {
+      val intent = Intent("android.bluetooth.adapter.action.REQUEST_ENABLE")
+      bluetoothEnableLauncher.launch(intent)
+      state.permissionKeepTryingAction = {
+        actionIfEnabledBluetoothAndLocation(state, permissionsState, bluetoothEnabled, locationEnabled, bluetoothEnableLauncher, locationEnableLauncher, action)
+      }
+    }
+
+    !locationEnabled() -> {
+      locationEnableLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+      state.permissionKeepTryingAction = {
+        actionIfEnabledBluetoothAndLocation(state, permissionsState, bluetoothEnabled, locationEnabled, bluetoothEnableLauncher, locationEnableLauncher, action)
+      }
+    }
+
+    else -> {
+      action()
+      state.permissionKeepTryingAction = null
+    }
   }
 }
