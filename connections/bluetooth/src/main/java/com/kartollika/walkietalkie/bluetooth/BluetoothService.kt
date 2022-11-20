@@ -120,7 +120,7 @@ class BluetoothService : Service() {
 
   fun listenForConnection() {
     bluetoothActionsDataSource.sendAction(ListenForConnections)
-    acceptThread = AcceptThread(10000)
+    acceptThread = AcceptThread(100000)
     acceptThread?.start()
   }
 
@@ -154,7 +154,6 @@ class BluetoothService : Service() {
         }
         socket?.also {
           manageMyConnectedSocket(it)
-          serverSocket?.close()
           shouldLoop = false
         }
       }
@@ -221,8 +220,6 @@ class BluetoothService : Service() {
 
     @SuppressLint("MissingPermission")
     override fun run() {
-      // Cancel discovery because it otherwise slows down the connection.
-
       socket?.let { socket ->
         try {
           socket.connect()

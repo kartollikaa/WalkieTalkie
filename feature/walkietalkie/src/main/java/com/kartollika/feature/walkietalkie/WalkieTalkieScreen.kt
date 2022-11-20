@@ -1,5 +1,6 @@
 package com.kartollika.feature.walkietalkie
 
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.provider.Settings
@@ -64,21 +65,23 @@ fun WalkieTalkieScreen(
     }
   }
 
-  val bluetoothEnableLauncher = rememberLauncherForActivityResult(contract = StartActivityForResult()) {
-    if (bluetoothEnabled()) {
-      state.permissionKeepTryingAction?.invoke()
-    } else {
-      state.permissionKeepTryingAction = null
+  val bluetoothEnableLauncher =
+    rememberLauncherForActivityResult(contract = StartActivityForResult()) {
+      if (bluetoothEnabled()) {
+        state.permissionKeepTryingAction?.invoke()
+      } else {
+        state.permissionKeepTryingAction = null
+      }
     }
-  }
 
-  val locationEnableLauncher = rememberLauncherForActivityResult(contract = StartActivityForResult()) {
-    if (locationEnabled()) {
-      state.permissionKeepTryingAction?.invoke()
-    } else {
-      state.permissionKeepTryingAction = null
+  val locationEnableLauncher =
+    rememberLauncherForActivityResult(contract = StartActivityForResult()) {
+      if (locationEnabled()) {
+        state.permissionKeepTryingAction?.invoke()
+      } else {
+        state.permissionKeepTryingAction = null
+      }
     }
-  }
 
   Box(
     modifier = Modifier
@@ -98,7 +101,8 @@ fun WalkieTalkieScreen(
           locationEnabled,
           bluetoothEnableLauncher,
           locationEnableLauncher,
-          onConnect
+          onConnect,
+          goingDiscoverable = false
         )
       },
       onListen = {
@@ -109,7 +113,8 @@ fun WalkieTalkieScreen(
           locationEnabled,
           bluetoothEnableLauncher,
           locationEnableLauncher,
-          onListen
+          onListen,
+          goingDiscoverable = true
         )
       },
       onDisconnect = onDisconnect,
@@ -129,33 +134,75 @@ private fun actionIfEnabledBluetoothAndLocation(
   locationEnabled: () -> Boolean,
   bluetoothEnableLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>,
   locationEnableLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>,
-  action: () -> Unit
+  action: () -> Unit,
+  goingDiscoverable: Boolean
 ) {
   if (!permissionsState.allPermissionsGranted) {
     permissionsState.launchMultiplePermissionRequest()
     state.permissionKeepTryingAction = {
-      actionIfEnabledBluetoothAndLocation(state, permissionsState, bluetoothEnabled, locationEnabled, bluetoothEnableLauncher, locationEnableLauncher, action)
+      actionIfEnabledBluetoothAndLocation(
+        state,
+        permissionsState,
+        bluetoothEnabled,
+        locationEnabled,
+        bluetoothEnableLauncher,
+        locationEnableLauncher,
+        action,
+        goingDiscoverable
+      )
     }
     return
   }
 
   when {
     !bluetoothEnabled() -> {
-      val intent = Intent("android.bluetooth.adapter.action.REQUEST_ENABLE")
+      val intent = if (goingDiscoverable) {
+        Intent(Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+          putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+        })
+      } else {
+        Intent("android.bluetooth.adapter.action.REQUEST_ENABLE")
+      }
+
       bluetoothEnableLauncher.launch(intent)
       state.permissionKeepTryingAction = {
-        actionIfEnabledBluetoothAndLocation(state, permissionsState, bluetoothEnabled, locationEnabled, bluetoothEnableLauncher, locationEnableLauncher, action)
+        actionIfEnabledBluetoothAndLocation(
+          state,
+          permissionsState,
+          bluetoothEnabled,
+          locationEnabled,
+          bluetoothEnableLauncher,
+          locationEnableLauncher,
+          action,
+          goingDiscoverable
+        )
       }
     }
 
     !locationEnabled() -> {
       locationEnableLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
       state.permissionKeepTryingAction = {
-        actionIfEnabledBluetoothAndLocation(state, permissionsState, bluetoothEnabled, locationEnabled, bluetoothEnableLauncher, locationEnableLauncher, action)
+        actionIfEnabledBluetoothAndLocation(
+          state,
+          permissionsState,
+          bluetoothEnabled,
+          locationEnabled,
+          bluetoothEnableLauncher,
+          locationEnableLauncher,
+          action,
+          goingDiscoverable
+        )
       }
     }
 
     else -> {
+      if (goingDiscoverable) {
+        bluetoothEnableLauncher.launch(
+          Intent(Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+          })
+        )
+      }
       action()
       state.permissionKeepTryingAction = null
     }
