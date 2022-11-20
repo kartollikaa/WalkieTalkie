@@ -1,6 +1,5 @@
 package com.kartollika.walkietalkie.bluetooth
 
-import android.util.Log
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DistanceChanged
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -42,11 +41,8 @@ class BluetoothActionsDataSourceImpl @Inject constructor(): BluetoothActionsData
       COUNT_FOR_MEAN_DEFAULT
     }
 
-    Log.d("LE:RSSI", rssi.toString())
-
     if (distanceCount >= countForMean) {
       distanceMean /= distanceCount
-      Log.d("LE Mean distance", distanceMean.toString())
 
       val decimal = BigDecimal(distanceMean).setScale(1, RoundingMode.HALF_EVEN)
       _bluetoothActions.tryEmit(DistanceChanged(decimal.toDouble()))

@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Speaker
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
@@ -56,6 +56,7 @@ import com.kartollika.feature.walkietalkie.Connected.WalkieMode
 import com.kartollika.feature.walkietalkie.Connected.WalkieMode.IDLE
 import com.kartollika.feature.walkietalkie.Connected.WalkieMode.LISTENING
 import com.kartollika.feature.walkietalkie.Connected.WalkieMode.SPEAKING
+import com.kartollika.feature.walkietalkie.R.string
 import com.kartollika.walkietalkie.audio.play.AudioPlayService
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -77,8 +78,7 @@ import com.kartollika.walkietalkie.audio.play.AudioPlayService
       state = state,
       onListen = onListen,
       onConnect = onConnect,
-      onDisconnect = onDisconnect,
-      permissionState = permissionState
+      onDisconnect = onDisconnect
     )
 
     when (state) {
@@ -136,8 +136,7 @@ private fun Connected(
       modifier = Modifier.align(BottomCenter),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Text(text = "Расстояние между устройствами:")
-      Text(text = "≈ ${Connected.distance} m")
+      Text(text = stringResource(string.distance_between_devices, Connected.distance.toString()))
     }
   }
 }
@@ -194,13 +193,12 @@ private fun PushToTalk(
   ) {
     val icon = when (walkieTalkieMode) {
       LISTENING -> Icons.Filled.Speaker
-      SPEAKING -> Icons.Filled.Wifi
-      IDLE -> Icons.Filled.Mic
+      IDLE, SPEAKING -> Icons.Filled.Mic
     }
     Icon(
       modifier = Modifier.padding(42.dp),
       imageVector = icon,
-      contentDescription = "Push to speak",
+      contentDescription = stringResource(string.accessibility_push_to_speak),
       tint = Color(0xff121212)
     )
   }
@@ -229,29 +227,28 @@ private fun BluetoothDevices(
     }
     .padding(16.dp)) {
     if (device.bondState == BOND_BONDED) {
-      Icon(imageVector = Icons.Default.Link, contentDescription = "Bonded")
+      Icon(imageVector = Icons.Default.Link, contentDescription = stringResource(string.accessibility_bounded))
     } else {
-      Icon(imageVector = Icons.Default.QuestionMark, contentDescription = "New")
+      Icon(imageVector = Icons.Default.QuestionMark, contentDescription = stringResource(string.accessibility_new))
     }
     Spacer(modifier = Modifier.width(16.dp))
     Text(text = device.name ?: device.address)
   }
 }
 
-@OptIn(ExperimentalPermissionsApi::class) @Composable private fun BluetoothControllers(
+@Composable private fun BluetoothControllers(
   modifier: Modifier = Modifier,
   state: WalkieTalkieState,
   onListen: () -> Unit,
   onConnect: () -> Unit,
-  onDisconnect: () -> Unit,
-  permissionState: MultiplePermissionsState
+  onDisconnect: () -> Unit
 ) {
   Row(modifier = modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
     if (state !is Connected) {
       ProgressButton(
         loading = state is Searching,
         idleContent = {
-          Text(text = "Connect")
+          Text(text = stringResource(string.connect))
         },
         onClick = onConnect
       )
@@ -259,13 +256,13 @@ private fun BluetoothDevices(
       ProgressButton(
         loading = state is Listening,
         idleContent = {
-          Text(text = "Listen")
+          Text(text = stringResource(string.listen))
         },
         onClick = onListen,
       )
     } else {
       Button(onClick = onDisconnect) {
-        Text(text = "Disconnect")
+        Text(text = stringResource(string.disconnect))
       }
     }
   }

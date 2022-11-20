@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="connect">Connect</string>
+  <string name="listen">Listen</string>
+  <string name="disconnect">Disconnect</string>
+  <string name="distance_between_devices">Расстояние между устройствами:\n≈ %s м</string>
+  <string name="accessibility_bounded">Bonded</string>
+  <string name="accessibility_new">New</string>
+  <string name="accessibility_push_to_speak">Push to speak</string>
+</resources>

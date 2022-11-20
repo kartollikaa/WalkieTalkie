@@ -25,7 +25,9 @@ import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceConnected
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DeviceDiscovered
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStarted
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.DiscoveryStopped
+import com.kartollika.walkietalkie.bluetooth.BluetoothAction.Error
 import com.kartollika.walkietalkie.bluetooth.BluetoothAction.ListenForConnections
+import com.kartollika.walkietalkie.bluetooth.R.string
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.IOException
 import java.util.UUID
@@ -101,7 +103,7 @@ class BluetoothService : Service() {
     bluetoothAdapter.cancelDiscovery()
     val discoveryStarted = bluetoothAdapter.startDiscovery()
     if (!discoveryStarted) {
-      bluetoothActionsDataSource.sendAction(BluetoothAction.Error(message = "Discovery not started"))
+      bluetoothActionsDataSource.sendAction(Error(message = "Discovery not started"))
       return
     }
 
@@ -136,7 +138,7 @@ class BluetoothService : Service() {
   private inner class AcceptThread(private val timeout: Int) : Thread() {
 
     private val serverSocket: BluetoothServerSocket? by lazy {
-      bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord("Bluetooth Service", UUID_CHANNEL)
+      bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(getString(string.bluetooth_service), UUID_CHANNEL)
     }
 
     override fun run() {
@@ -146,7 +148,7 @@ class BluetoothService : Service() {
         val socket: BluetoothSocket? = try {
           serverSocket?.accept(timeout)
         } catch (e: IOException) {
-          bluetoothActionsDataSource.sendAction(BluetoothAction.Error(message = "Listen timeout"))
+          bluetoothActionsDataSource.sendAction(Error(message = "Listen timeout"))
           shouldLoop = false
           null
         }
@@ -220,21 +222,15 @@ class BluetoothService : Service() {
     @SuppressLint("MissingPermission")
     override fun run() {
       // Cancel discovery because it otherwise slows down the connection.
-      stopDiscovery()
 
       socket?.let { socket ->
         try {
           socket.connect()
-        } catch (_: Exception) {
+          stopDiscovery()
+          manageMyConnectedSocket(socket)
+        } catch (e: Exception) {
+          bluetoothActionsDataSource.sendAction(Error(e))
         }
-        manageMyConnectedSocket(socket)
-      }
-    }
-
-    fun cancel() {
-      try {
-        disconnect()
-      } catch (_: IOException) {
       }
     }
   }

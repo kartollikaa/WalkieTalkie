@@ -3,7 +3,6 @@ package com.kartollika.feature.walkietalkie
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.location.LocationManager
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kartollika.feature.walkietalkie.Connected.WalkieMode
@@ -109,7 +108,9 @@ class WalkieTalkieViewModel @Inject constructor(
   }
 
   private fun onError(error: Error) {
-    _walkieTalkieState.tryEmit(Idle)
+    if (walkieTalkieState.value !is Searching) {
+      _walkieTalkieState.tryEmit(Idle)
+    }
   }
 
   private fun onDeviceConnected() {
@@ -144,12 +145,7 @@ class WalkieTalkieViewModel @Inject constructor(
     _walkieTalkieState.tryEmit(Listening)
   }
 
-  private fun closeConnection() {
-    _walkieTalkieState.tryEmit(Idle)
-  }
-
   private fun updateWalkieMode(walkieMode: WalkieMode) {
-    Log.d("WALKIEMODE", walkieMode.name)
     Connected.walkieTalkieMode = walkieMode
   }
 
