@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
@@ -136,7 +137,10 @@ private fun Connected(
       modifier = Modifier.align(BottomCenter),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Text(text = stringResource(string.distance_between_devices, Connected.distance.toString()))
+      Text(
+        text = stringResource(string.distance_between_devices, Connected.distance.toString()),
+        textAlign = TextAlign.Center
+      )
     }
   }
 }
